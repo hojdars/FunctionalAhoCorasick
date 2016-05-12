@@ -1,3 +1,5 @@
+module KMP where
+
 data DAState = Lambda | State String deriving(Show)
 
 instance Eq DAState where
