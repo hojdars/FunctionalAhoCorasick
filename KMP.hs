@@ -38,6 +38,20 @@ deltaOne state letter (tr:transitions) = if st == state && letter == lt then tar
                                         else deltaOne state letter transitions
     where (st,lt,target) = tr
 
+-- reads all the whole word to the end
 deltaStar :: DAState -> String -> [( DAState , Char, DAState )] -> DAState
 deltaStar st [] _ = st
 deltaStar st (w:word) transitions = deltaStar ( deltaOne st w transitions ) word transitions
+
+-- generates a second list with the back edges so the KMP automata can return
+generateBackEdges' :: DAState -> String -> [( DAState , Char, DAState )] -> [DAState]
+generateBackEdges' st [] _ = [st]
+generateBackEdges' st (w:word) transitions = (st : nextSteps)
+                                        where
+                                            nextState = deltaOne st w transitions
+                                            nextSteps = generateBackEdges' nextState word transitions
+
+-- states, backing edges generated
+-- states word konfigurations --> backing edges
+generateBackEdges :: [DAState] -> String -> [( DAState , Char, DAState )] -> [(DAState,DAState)]
+generateBackEdges states word konfigurations = ( (Lambda,Lambda):(zip (tail states) $ generateBackEdges' Lambda (tail word) konfigurations))
