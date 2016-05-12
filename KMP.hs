@@ -31,27 +31,38 @@ generateForward :: String -> [DAState] -> [( DAState , Char, DAState )]
 generateForward [] _ = []
 generateForward (w:word) (st:nextst:states) = (st, w, nextst):(generateForward word (nextst:states))
 
--- delta function, State + word --> new state
-deltaOne :: DAState -> Char -> [( DAState , Char, DAState )] -> DAState
-deltaOne state letter [] = Lambda -- TODO: zpetne hrany here
-deltaOne state letter (tr:transitions) = if st == state && letter == lt then target
-                                        else deltaOne state letter transitions
-    where (st,lt,target) = tr
+-- delta function, State + word + konfigurations + backEdges --> new state
+deltaOne :: DAState -> Char -> [( DAState , Char, DAState )] -> [(DAState,DAState)] -> DAState
+deltaOne state letter [] [] = Lambda
+deltaOne state letter [] backs = f $ lookup state backs
+                                where
+                                    f Nothing = Lambda
+                                    f (Just backState) = backState
+deltaOne state letter (tr:transitions) backs = if st == state && letter == lt then target
+                                        else deltaOne state letter transitions backs
+                                        where (st,lt,target) = tr
 
 -- reads all the whole word to the end
-deltaStar :: DAState -> String -> [( DAState , Char, DAState )] -> DAState
-deltaStar st [] _ = st
-deltaStar st (w:word) transitions = deltaStar ( deltaOne st w transitions ) word transitions
+deltaStar :: DAState -> String -> [( DAState , Char, DAState )] -> [(DAState,DAState)] -> DAState
+deltaStar st [] _ backs = st
+deltaStar st (w:word) transitions backs = deltaStar ( deltaOne st w transitions backs ) word transitions backs
 
 -- generates a second list with the back edges so the KMP automata can return
 generateBackEdges' :: DAState -> String -> [( DAState , Char, DAState )] -> [DAState]
 generateBackEdges' st [] _ = [st]
 generateBackEdges' st (w:word) transitions = (st : nextSteps)
                                         where
-                                            nextState = deltaOne st w transitions
+                                            nextState = deltaOne st w transitions []
                                             nextSteps = generateBackEdges' nextState word transitions
 
 -- states, backing edges generated
 -- states word konfigurations --> backing edges
 generateBackEdges :: [DAState] -> String -> [( DAState , Char, DAState )] -> [(DAState,DAState)]
 generateBackEdges states word konfigurations = ( (Lambda,Lambda):(zip (tail states) $ generateBackEdges' Lambda (tail word) konfigurations))
+
+evalWord :: String -> String -> DAState
+evalWord word text = deltaStar Lambda text configs backs
+                where
+                    states = generateStates word
+                    configs = generateForward word states
+                    backs = generateBackEdges states word configs
