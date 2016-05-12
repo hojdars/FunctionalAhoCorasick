@@ -1,9 +1,9 @@
 data DAState = Lambda | State String deriving(Show)
 
 instance Eq DAState where
-    Lambda == Lambda = True
-    State a == State b = a == b
-    _ == _ = False
+    Lambda  == Lambda   = True
+    State a == State b  = a == b
+    _       == _        = False
 
 -- gets a string, start and end, returns the substring
 mySubstring :: String -> Int -> Int -> String -> String
@@ -31,7 +31,11 @@ generateForward (w:word) (st:nextst:states) = (st, w, nextst):(generateForward w
 
 -- delta function, State + word --> new state
 deltaOne :: DAState -> Char -> [( DAState , Char, DAState )] -> DAState
-deltaOne state letter [] = Lambda
+deltaOne state letter [] = Lambda -- TODO: zpetne hrany here
 deltaOne state letter (tr:transitions) = if st == state && letter == lt then target
                                         else deltaOne state letter transitions
     where (st,lt,target) = tr
+
+deltaStar :: DAState -> String -> [( DAState , Char, DAState )] -> DAState
+deltaStar st [] _ = st
+deltaStar st (w:word) transitions = deltaStar ( deltaOne st w transitions ) word transitions
