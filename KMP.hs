@@ -31,16 +31,27 @@ generateForward :: String -> [DAState] -> [( DAState , Char, DAState )]
 generateForward [] _ = []
 generateForward (w:word) (st:nextst:states) = (st, w, nextst):(generateForward word (nextst:states))
 
+findStepBack :: DAState -> Char -> [( DAState , Char, DAState )] -> [(DAState,DAState)] -> DAState
+findStepBack Lambda letter transitions _ = f (findForward letter Lambda transitions)
+                                    where
+                                        f Nothing = Lambda
+                                        f (Just backState) = backState
+findStepBack state letter transitions backs = if (forwardEdge) == Nothing then findStepBack nextBack letter transitions backs
+                                            else (f forwardEdge)
+                                    where
+                                        forwardEdge = findForward letter state transitions
+                                        f Nothing = Lambda
+                                        f (Just backState) = backState
+                                        nextBack = f $ lookup state backs
+
 -- delta function, State + word + konfigurations + backEdges --> new state
 deltaOne :: DAState -> Char -> [( DAState , Char, DAState )] -> [(DAState,DAState)] -> DAState
-deltaOne state letter [] [] = Lambda
-deltaOne state letter [] backs = f $ lookup state backs
-                                where
-                                    f Nothing = Lambda
-                                    f (Just backState) = backState
-deltaOne state letter (tr:transitions) backs = if st == state && letter == lt then target
-                                        else deltaOne state letter transitions backs
-                                        where (st,lt,target) = tr
+deltaOne state letter transitions backs =   if (forwardEdge) == Nothing then findStepBack state letter transitions backs
+                                            else (f forwardEdge)
+                                    where
+                                        forwardEdge = findForward letter state transitions
+                                        f Nothing = Lambda
+                                        f (Just backState) = backState
 
 -- finds a forward edge or declares Nothing
 findForward :: Char -> DAState -> [( DAState , Char, DAState )] -> Maybe DAState
@@ -48,7 +59,7 @@ findForward _ _ [] = Nothing
 findForward letter state (t:transitions) =  if findState == state && letter == findLetter then (Just target)
                                             else findForward letter state transitions
                                         where
-                                            (findState, findLetter, target) = tr
+                                            (findState, findLetter, target) = t
 
 -- reads all the whole word to the end
 deltaStar :: DAState -> String -> [( DAState , Char, DAState )] -> [(DAState,DAState)] -> DAState
