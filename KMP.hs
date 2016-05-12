@@ -42,6 +42,14 @@ deltaOne state letter (tr:transitions) backs = if st == state && letter == lt th
                                         else deltaOne state letter transitions backs
                                         where (st,lt,target) = tr
 
+-- finds a forward edge or declares Nothing
+findForward :: Char -> DAState -> [( DAState , Char, DAState )] -> Maybe DAState
+findForward _ _ [] = Nothing
+findForward letter state (t:transitions) =  if findState == state && letter == findLetter then (Just target)
+                                            else findForward letter state transitions
+                                        where
+                                            (findState, findLetter, target) = tr
+
 -- reads all the whole word to the end
 deltaStar :: DAState -> String -> [( DAState , Char, DAState )] -> [(DAState,DAState)] -> DAState
 deltaStar st [] _ backs = st
