@@ -7,28 +7,16 @@ instance Eq DAState where
     State a == State b  = a == b
     _       == _        = False
 
--- gets a string, start and end, returns the substring
---mySubstring :: String -> Int -> Int -> String -> String
---mySubstring (x:txt) s t acc =   if s == 0 && t > 0 then mySubstring txt s (t-1) (x:acc)
---                                else if s==0 && t==0 then reverse acc-
---                                else if s > 0 then mySubstring txt (s-1) (t-1) (acc)
-    --                            else error "Error in generating substring"
---mySubstring [] _ _ acc = reverse acc
-
 mySubstring :: String -> Int -> Int -> String
 mySubstring sez begin end = drop begin (take end sez)
 
 -- generate states from a word
 generateStates :: String -> [DAState]
-generateStates str = generateStates' str 0 []
-
-generateStates' :: String -> Int -> [DAState] -> [DAState]
-generateStates' str len acc=if (len-1) == (length str) then (reverse acc)
-                            else
-                                if newS == ""   then generateStates' str (len+1) (Lambda:acc)
-                                                else generateStates' str (len+1) (( State newS):acc)
-                            where newS = (mySubstring str 0 len )
-
+generateStates word = map (f word) [0..(length word)]
+                where
+                    f _ 0 = Lambda
+                    f w i = State (mySubstring w 0 i)
+                    
 -- word -> states -> konfigurations (state, read letter, new state)
 generateForward :: String -> [DAState] -> [( DAState , Char, DAState )]
 generateForward [] _ = []
