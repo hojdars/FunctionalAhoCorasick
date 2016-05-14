@@ -148,3 +148,11 @@ treeBuild needles = (needles, confs , backShort )
         Config (smt, children) = convert lambdaState
         initConf = map (\ (letter, newState) -> convert ( lookfor newState confs ) ) $ children
         backShort = workQ initConf confs needles ([],[])
+
+
+acHledej :: DAState -> [String] -> String -> ( [String] ,[Config], ([BackEdge],[ShortEdge]) ) -> DAState
+acHledej state _ [] _ = state
+acHledej state (needles) (h:hay) (finalWords, confs, (backs,shorts)) = acHledej (acKrok state h confs (backs,shorts)) needles hay (finalWords, confs, (backs,shorts))
+
+ac :: [String] -> String -> DAState
+ac needles hay = acHledej Lambda needles hay (treeBuild needles)
