@@ -160,10 +160,8 @@ goThroughShorts state shorts finalWords found = goThroughShorts nextState shorts
                         else found
 
 acHledej :: DAState -> [String] -> String -> ( [String] ,[Config], ([BackEdge],[ShortEdge]) ) -> [String] -> ( DAState, [String] )
-acHledej state _ [] (finalWords, _, (backs,shorts)) found = (state, newfound)
-    where newfound = found ++ (goThroughShorts state shorts finalWords [])
-acHledej state (needles) (h:hay) (finalWords, confs, (backs,shorts)) found = acHledej (acKrok state h confs (backs,shorts)) needles hay (finalWords, confs, (backs,shorts)) newfound
-    where newfound = found ++ (goThroughShorts state shorts finalWords [])
+acHledej state _ [] (finalWords, _, (backs,shorts)) found = (state, found ++ (goThroughShorts state shorts finalWords []))
+acHledej state (needles) (h:hay) (finalWords, confs, (backs,shorts)) found = acHledej (acKrok state h confs (backs,shorts)) needles hay (finalWords, confs, (backs,shorts)) ( found ++ (goThroughShorts state shorts finalWords []))
 
 ac :: [String] -> String -> [String]
 ac needles hay = snd $ acHledej Lambda needles hay (treeBuild needles) []
