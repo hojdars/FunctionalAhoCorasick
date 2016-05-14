@@ -138,3 +138,13 @@ workQ (front:queue) confs finalWords (back,short) = workQ (queue ++ addToQ forwE
                                       else ((convert result):(addToQ edges confs))
             where
                 result = lookfor state confs
+
+-- gets a list of words, returns the list of final words, forwardConfigs, backedges and shortedges
+treeBuild :: [String] -> ( [String] ,[Config], ([BackEdge],[ShortEdge]) )
+treeBuild needles = (needles, confs , backShort )
+    where
+        confs = (genWords needles [])
+        lambdaState = lookfor Lambda confs
+        Config (smt, children) = convert lambdaState
+        initConf = map (\ (letter, newState) -> convert ( lookfor newState confs ) ) $ children
+        backShort = workQ initConf confs needles ([],[])
