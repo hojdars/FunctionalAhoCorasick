@@ -92,14 +92,49 @@ acKrok :: DAState -> Char -> [Config] -> ([BackEdge],[ShortEdge]) -> DAState
 acKrok state letter confs (backs,shorts) =
         if forwardEdge == Nothing then stepBack state letter confs (backs,shorts)
         else
-            if forwardJump == Nothing then Lambda
+            if forwardJump == Nothing then stepBack state letter confs (backs,shorts)
             else (convert forwardJump)
     where
-    forwardEdge = lookfor state confs
-    Config (inState, transitions) = convert forwardEdge
-    forwardJump = lookup letter transitions
+        forwardEdge = lookfor state confs
+        Config (inState, transitions) = convert forwardEdge
+        forwardJump = lookup letter transitions
 
--- TODO : do fronty budu davat dvojice (pismeno, state) - pismeno kvuli "pismenu na hrane is"
--- generates backs and shorts
-workQ :: [(Char, DAState)] -> [Config] -> ([BackEdge],[ShortEdge]) -> ([BackEdge],[ShortEdge])
-workQ (f:queue) confs (back,short) = ([],[])
+lookForShort :: DAState -> [ShortEdge] -> Maybe DAState
+lookForShort state [] = Nothing
+lookForShort state (b:backs) = if state == firstState then Just nextState
+                        else lookForShort state backs
+                    where ShortEdge (firstState,nextState) = b
+
+getStr :: DAState -> String
+getStr st | st == Lambda = ""
+          | otherwise = str
+          where
+            State str = st
+
+forEachBuild :: DAState -> [(Char,DAState)] -> [Config] -> [String] -> ([BackEdge],[ShortEdge]) -> ([BackEdge],[ShortEdge])
+forEachBuild iState [] confs finalWords backShort = backShort
+forEachBuild iState ((isLetter,sState):rest) confs finalWords (backs,shorts) = forEachBuild iState rest confs finalWords ( (newBack:backs)  , (newShort:shorts))
+    where
+        zpetI = lookforBack iState backs
+        f Nothing = Lambda
+        f (Just a) = a
+        zState = (acKrok (f zpetI) isLetter confs (backs,shorts))
+        newBack = BackEdge (  sState , zState )
+        zkratkaZ = f $ lookForShort zState shorts
+        strZState = (getStr zState)
+        newShort = if strZState == "" then ShortEdge ( sState ,  zkratkaZ )
+                    else
+                        if elem strZState finalWords then ShortEdge ( sState ,  zState   )
+                        else ShortEdge ( sState ,  zkratkaZ   )
+
+
+workQ :: [Config] -> [Config] -> [String] -> ([BackEdge],[ShortEdge]) -> ([BackEdge],[ShortEdge])
+workQ [] confs finalWords (back,short) = (back,short)
+workQ (front:queue) confs finalWords (back,short) = workQ (queue ++ addToQ forwEdges confs) confs finalWords (forEachBuild state_i forwEdges confs finalWords (back,short))
+    where
+        Config (state_i,forwEdges) = front
+        addToQ [] confs = []
+        addToQ ((letter,state):edges) confs = if result == Nothing then (addToQ edges confs)
+                                      else ((convert result):(addToQ edges confs))
+            where
+                result = lookfor state confs
