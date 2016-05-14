@@ -149,10 +149,21 @@ treeBuild needles = (needles, confs , backShort )
         initConf = map (\ (letter, newState) -> convert ( lookfor newState confs ) ) $ children
         backShort = workQ initConf confs needles ([],[])
 
+goThroughShorts :: DAState -> [ShortEdge] -> [String] -> [String] -> [String]
+goThroughShorts Lambda _ _ f = f
+goThroughShorts state shorts finalWords found = goThroughShorts nextState shorts finalWords newfound
+    where
+        nextState = f $ lookForShort state shorts
+        f Nothing = Lambda
+        f (Just a) = a
+        newfound = if (elem (getStr state) finalWords) then (getStr state):found
+                        else found
 
-acHledej :: DAState -> [String] -> String -> ( [String] ,[Config], ([BackEdge],[ShortEdge]) ) -> DAState
-acHledej state _ [] _ = state
-acHledej state (needles) (h:hay) (finalWords, confs, (backs,shorts)) = acHledej (acKrok state h confs (backs,shorts)) needles hay (finalWords, confs, (backs,shorts))
+acHledej :: DAState -> [String] -> String -> ( [String] ,[Config], ([BackEdge],[ShortEdge]) ) -> [String] -> ( DAState, [String] )
+acHledej state _ [] (finalWords, _, (backs,shorts)) found = (state, newfound)
+    where newfound = found ++ (goThroughShorts state shorts finalWords [])
+acHledej state (needles) (h:hay) (finalWords, confs, (backs,shorts)) found = acHledej (acKrok state h confs (backs,shorts)) needles hay (finalWords, confs, (backs,shorts)) newfound
+    where newfound = found ++ (goThroughShorts state shorts finalWords [])
 
-ac :: [String] -> String -> DAState
-ac needles hay = acHledej Lambda needles hay (treeBuild needles)
+ac :: [String] -> String -> [String]
+ac needles hay = snd $ acHledej Lambda needles hay (treeBuild needles) []
