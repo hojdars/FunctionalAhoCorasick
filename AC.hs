@@ -94,7 +94,7 @@ stepBack state letter confs (b,s) | forwardEdge == Nothing                 = ste
 
 -- one step of the automata, goes directly if it can else it backtracks
 acStep :: DAState -> Char -> [Config] -> ([BackEdge],[ShortEdge]) -> DAState
-acStep state letter confs (backs,shorts) =
+acStep state letter confs (backs,shorts) 
          | forwardEdge == Nothing = stepBack state letter confs (backs,shorts) -- if there exists at least one edge from the current node
          | forwardJump == Nothing = stepBack state letter confs (backs,shorts) -- if there is no edge from this node for this letter, we backtrack
          | otherwise              = (convert forwardJump) -- else we travel to this new node ~ state
