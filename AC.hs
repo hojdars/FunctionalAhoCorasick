@@ -54,12 +54,12 @@ lookForShort state (b:backs) | state == firstState = Just nextState
 -- it looks up the config in config list for the state we want to create, if it already exists (like in barb + barc test, bar already exists)
 -- we add the edge into the new state to the list, if it doesn't we create the whole config
 gen :: String -> [Config] -> Int -> [Config]
-gen w c 0 = if result == Nothing then (Config (Lambda, [(head (mySubstring w 0 1),(State (mySubstring w 0 1)))] )):c
-            else (  Config ( first_state , nub (( (head (mySubstring w 0 1), State (mySubstring w 0 1)) ) : (second_cond)) )  ):(erase Lambda c) -- odeber result, pridej do resultiho seznamu a vrat to zpet
+gen w c 0 | result == Nothing = (Config (Lambda, [(head (mySubstring w 0 1),(State (mySubstring w 0 1)))] )):c
+          | otherwise         = (  Config ( first_state , nub (( (head (mySubstring w 0 1), State (mySubstring w 0 1)) ) : (second_cond)) )  ):(erase Lambda c) -- odeber result, pridej do resultiho seznamu a vrat to zpet
                 where   result = lookfor Lambda c
                         Config (first_state,second_cond) = convert result
-gen w c i = if result == Nothing then ( Config( (State (mySubstring w 0 i)), [ (head (mySubstring w i (i+1)) , (State (mySubstring w 0 (i+1))))]) ):c
-            else (  Config ( first_state ,  nub ( ( (head (mySubstring w i (i+1)), (State (mySubstring w 0 (i+1)))))  : (second_cond) ) )  ):(erase first_state c) -- odeber result, pridej do resultiho seznamu a vrat to zpet
+gen w c i | result == Nothing = ( Config( (State (mySubstring w 0 i)), [ (head (mySubstring w i (i+1)) , (State (mySubstring w 0 (i+1))))]) ):c
+          | otherwise         = (  Config ( first_state ,  nub ( ( (head (mySubstring w i (i+1)), (State (mySubstring w 0 (i+1)))))  : (second_cond) ) )  ):(erase first_state c) -- odeber result, pridej do resultiho seznamu a vrat to zpet
                 where   result = lookfor (State (mySubstring w 0 i)) c
                         Config (first_state,second_cond) = convert result
 
@@ -72,10 +72,9 @@ genWords (w:word) conf = genWords word (genForWord w conf 0)
 
 -- takes one forward step from given state over given letter, need to provide Configurations
 forwardStep :: DAState -> Char -> [Config] -> DAState
-forwardStep state letter confs = if result == Nothing then Lambda
-                            else
-                                 if edge == Nothing then Lambda
-                                 else convert edge
+forwardStep state letter confs | result == Nothing = Lambda
+                               | edge == Nothing   = Lambda
+                               | otherwise         = convert edge
     where
         result = lookfor state confs
         Config (first, transitions) = convert result
@@ -85,10 +84,9 @@ forwardStep state letter confs = if result == Nothing then Lambda
 -- either it lands in lambda or it succeeds trying
 stepBack :: DAState -> Char -> [Config] -> ([BackEdge],[ShortEdge]) -> DAState
 stepBack Lambda letter confs (backs,shorts) = forwardStep Lambda letter confs
-stepBack state letter confs (b,s) = if forwardEdge == Nothing then stepBack nextBack letter confs (b,s)
-                                    else
-                                        if (lookup letter transitions) == Nothing then stepBack nextBack letter confs (b,s)
-                                        else forwardStep state letter confs
+stepBack state letter confs (b,s) | forwardEdge == Nothing                 = stepBack nextBack letter confs (b,s)
+                                  | (lookup letter transitions) == Nothing = stepBack nextBack letter confs (b,s)
+                                  | otherwise                              = forwardStep state letter confs
     where
         forwardEdge = lookfor state confs
         Config (inState, transitions) = convert forwardEdge
