@@ -114,8 +114,8 @@ workQ (front:queue) confs finalWords (back,short) = workQ (queue ++ addToQ forwE
     where
         Config (state_i,forwEdges) = front
         addToQ [] confs = [] -- we need to add to the queue all the children of the current node
-        addToQ ((letter,state):edges) confs = if result == Nothing then (addToQ edges confs)
-                                              else ((convert result):(addToQ edges confs))
+        addToQ ((letter,state):edges) confs | result == Nothing = (addToQ edges confs)
+                                            | otherwise         = ((convert result):(addToQ edges confs))
             where result = lookfor state confs
 
 -- gets a list of words, returns the list of final words, forwardConfigs, backedges and shortedges, using all the functions listed above
