@@ -3,8 +3,8 @@ import Data.List
 
 data DAState = Lambda | State String deriving(Show)
 data Config = Config (DAState, [(Char,DAState)]) deriving(Show)
-data BackEdge = BackEdge (DAState,DAState) deriving(Show)
-data ShortEdge = ShortEdge (DAState,DAState) deriving(Show)
+type BackEdge = (DAState,DAState) 
+type ShortEdge = (DAState,DAState)
 
 instance Eq Config where Config (a,b) == Config (c,d) = (a==c) && (b==d)
 instance Eq DAState where
@@ -37,18 +37,6 @@ lookfor state [] = Nothing
 lookfor state (c:confs) | state == cstate = Just c 
                         | otherwise       = lookfor state confs
                     where Config (cstate,nic) = c
-
-lookforBack :: DAState -> [BackEdge] -> Maybe DAState -- prelude's lookup for BackEdge type
-lookforBack state [] = Nothing
-lookforBack state (b:backs) | state == firstState = Just nextState
-                            | otherwise           = lookforBack state backs
-    where BackEdge (firstState,nextState) = b
-
-lookForShort :: DAState -> [ShortEdge] -> Maybe DAState -- prelude's lookup for ShortEdge type
-lookForShort state [] = Nothing
-lookForShort state (b:backs) | state == firstState = Just nextState
-                             | otherwise           = lookForShort state backs
-    where ShortEdge (firstState,nextState) = b
 
 -- generates one forward edge
 -- it looks up the config in config list for the state we want to create, if it already exists (like in barb + barc test, bar already exists)
@@ -90,7 +78,7 @@ stepBack state letter confs (b,s) | forwardEdge == Nothing                 = ste
     where
         forwardEdge = lookfor state confs
         Config (inState, transitions) = convert forwardEdge
-        nextBack = convertLambda $ lookforBack state b
+        nextBack = convertLambda $ lookup state b
 
 -- one step of the automata, goes directly if it can else it backtracks
 acStep :: DAState -> Char -> [Config] -> ([BackEdge],[ShortEdge]) -> DAState
@@ -108,14 +96,14 @@ forEachBuild :: DAState -> [(Char,DAState)] -> [Config] -> [String] -> ([BackEdg
 forEachBuild iState [] confs finalWords backShort = backShort
 forEachBuild iState ((isLetter,sState):rest) confs finalWords (backs,shorts) = forEachBuild iState rest confs finalWords ( (newBack:backs)  , (newShort:shorts))
     where
-        zpetI = lookforBack iState backs
+        zpetI = lookup iState backs
         zState = (acStep ( convertLambda zpetI) isLetter confs (backs,shorts))
-        newBack = BackEdge (  sState , zState )
-        zkratkaZ = convertLambda $ lookForShort zState shorts
+        newBack = (  sState , zState )
+        zkratkaZ = convertLambda $ lookup zState shorts
         strZState = (getStr zState)
-        newShort = if strZState == "" then ShortEdge ( sState ,  zkratkaZ )
-                    else if elem strZState finalWords then ShortEdge ( sState ,  zState   )
-                         else ShortEdge ( sState ,  zkratkaZ   )
+        newShort = if strZState == "" then ( sState ,  zkratkaZ )
+                    else if elem strZState finalWords then ( sState ,  zState   )
+                         else ( sState ,  zkratkaZ   )
 
 -- constructs the back and short edges
 -- if we reached the end we return our accumulator
@@ -145,7 +133,7 @@ goThroughShorts :: DAState -> [ShortEdge] -> [String] -> [String] -> [String]
 goThroughShorts Lambda _ _ found = found
 goThroughShorts state shorts finalWords found = goThroughShorts nextState shorts finalWords newfound
     where
-        nextState = convertLambda $ lookForShort state shorts
+        nextState = convertLambda $ lookup state shorts
         newfound = if (elem (getStr state) finalWords) then (getStr state):found else found
 
 -- we do acStep for the automata, each time checking all the shorts via goThroughShorts
