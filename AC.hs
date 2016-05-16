@@ -1,4 +1,4 @@
-module AC where
+module AC ( ac ) where
 import Data.List
 
 data DAState = Lambda | State String deriving(Show)
