@@ -139,7 +139,7 @@ treeBuild needles = (needles, confs , backShort )
         confs = (genWords needles []) -- generate the forward edges and trie structure
         lambdaState = lookfor Lambda confs -- we find Lambda -> the root
         Config (smt, children) = convert lambdaState
-        initConf = map (\ (letter, newState) -> convert ( lookfor newState confs ) ) $ children -- initConf are initial entries in the queue -> children of Lambda
+        initConf = foldr (\ (l,st) acc -> let res = (lookfor st confs) in if res == Nothing then acc else ((convert res):acc) ) [] children -- for each child of root, we add his children to the queue
         backShort = workQ initConf confs needles ([],[]) -- we construct the back and short edges
 
 -- function that goes through all the short jumps whenever we arrive to a node, checking all the possible occurences of some of the needles
