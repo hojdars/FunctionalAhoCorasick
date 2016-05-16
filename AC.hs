@@ -34,31 +34,32 @@ erase state cfgs = filter (\ (Config a) -> (fst a)/=state) cfgs
 
 lookfor :: DAState -> [Config] -> Maybe Config -- prelude's lookup for Config type
 lookfor state [] = Nothing
-lookfor state (c:confs) = if state == cstate then Just c else lookfor state confs
+lookfor state (c:confs) | state == cstate = Just c 
+                        | otherwise       = lookfor state confs
                     where Config (cstate,nic) = c
 
 lookforBack :: DAState -> [BackEdge] -> Maybe DAState -- prelude's lookup for BackEdge type
 lookforBack state [] = Nothing
-lookforBack state (b:backs) = if state == firstState then Just nextState
-                            else lookforBack state backs
+lookforBack state (b:backs) | state == firstState = Just nextState
+                            | otherwise           = lookforBack state backs
     where BackEdge (firstState,nextState) = b
 
 lookForShort :: DAState -> [ShortEdge] -> Maybe DAState -- prelude's lookup for ShortEdge type
 lookForShort state [] = Nothing
-lookForShort state (b:backs) = if state == firstState then Just nextState
-                                else lookForShort state backs
+lookForShort state (b:backs) | state == firstState = Just nextState
+                             | otherwise           = lookForShort state backs
     where ShortEdge (firstState,nextState) = b
 
 -- generates one forward edge
 -- it looks up the config in config list for the state we want to create, if it already exists (like in barb + barc test, bar already exists)
 -- we add the edge into the new state to the list, if it doesn't we create the whole config
 gen :: String -> [Config] -> Int -> [Config]
-gen w c 0 = if result == Nothing then (Config (Lambda, [(head (mySubstring w 0 1),(State (mySubstring w 0 1)))] )):c
-            else (  Config ( first_state , nub (( (head (mySubstring w 0 1), State (mySubstring w 0 1)) ) : (second_cond)) )  ):(erase Lambda c) -- odeber result, pridej do resultiho seznamu a vrat to zpet
+gen w c 0 | result == Nothing = (Config (Lambda, [(head (mySubstring w 0 1),(State (mySubstring w 0 1)))] )):c
+          | otherwise         = (  Config ( first_state , nub (( (head (mySubstring w 0 1), State (mySubstring w 0 1)) ) : (second_cond)) )  ):(erase Lambda c) -- odeber result, pridej do resultiho seznamu a vrat to zpet
                 where   result = lookfor Lambda c
                         Config (first_state,second_cond) = convert result
-gen w c i = if result == Nothing then ( Config( (State (mySubstring w 0 i)), [ (head (mySubstring w i (i+1)) , (State (mySubstring w 0 (i+1))))]) ):c
-            else (  Config ( first_state ,  nub ( ( (head (mySubstring w i (i+1)), (State (mySubstring w 0 (i+1)))))  : (second_cond) ) )  ):(erase first_state c) -- odeber result, pridej do resultiho seznamu a vrat to zpet
+gen w c i | result == Nothing = ( Config( (State (mySubstring w 0 i)), [ (head (mySubstring w i (i+1)) , (State (mySubstring w 0 (i+1))))]) ):c
+          | otherwise         = (  Config ( first_state ,  nub ( ( (head (mySubstring w i (i+1)), (State (mySubstring w 0 (i+1)))))  : (second_cond) ) )  ):(erase first_state c) -- odeber result, pridej do resultiho seznamu a vrat to zpet
                 where   result = lookfor (State (mySubstring w 0 i)) c
                         Config (first_state,second_cond) = convert result
 
@@ -71,10 +72,9 @@ genWords (w:word) conf = genWords word (genForWord w conf 0)
 
 -- takes one forward step from given state over given letter, need to provide Configurations
 forwardStep :: DAState -> Char -> [Config] -> DAState
-forwardStep state letter confs = if result == Nothing then Lambda
-                            else
-                                 if edge == Nothing then Lambda
-                                 else convert edge
+forwardStep state letter confs | result == Nothing = Lambda
+                               | edge == Nothing   = Lambda
+                               | otherwise         = convert edge
     where
         result = lookfor state confs
         Config (first, transitions) = convert result
@@ -84,10 +84,9 @@ forwardStep state letter confs = if result == Nothing then Lambda
 -- either it lands in lambda or it succeeds trying
 stepBack :: DAState -> Char -> [Config] -> ([BackEdge],[ShortEdge]) -> DAState
 stepBack Lambda letter confs (backs,shorts) = forwardStep Lambda letter confs
-stepBack state letter confs (b,s) = if forwardEdge == Nothing then stepBack nextBack letter confs (b,s)
-                                    else
-                                        if (lookup letter transitions) == Nothing then stepBack nextBack letter confs (b,s)
-                                        else forwardStep state letter confs
+stepBack state letter confs (b,s) | forwardEdge == Nothing                 = stepBack nextBack letter confs (b,s)
+                                  | (lookup letter transitions) == Nothing = stepBack nextBack letter confs (b,s)
+                                  | otherwise                              = forwardStep state letter confs
     where
         forwardEdge = lookfor state confs
         Config (inState, transitions) = convert forwardEdge
@@ -96,10 +95,9 @@ stepBack state letter confs (b,s) = if forwardEdge == Nothing then stepBack next
 -- one step of the automata, goes directly if it can else it backtracks
 acStep :: DAState -> Char -> [Config] -> ([BackEdge],[ShortEdge]) -> DAState
 acStep state letter confs (backs,shorts) =
-         if forwardEdge == Nothing then stepBack state letter confs (backs,shorts) -- if there exists at least one edge from the current node
-        else
-            if forwardJump == Nothing then stepBack state letter confs (backs,shorts) -- if there is no edge from this node for this letter, we backtrack
-            else (convert forwardJump) -- else we travel to this new node ~ state
+         | forwardEdge == Nothing = stepBack state letter confs (backs,shorts) -- if there exists at least one edge from the current node
+         | forwardJump == Nothing = stepBack state letter confs (backs,shorts) -- if there is no edge from this node for this letter, we backtrack
+         | otherwise              = (convert forwardJump) -- else we travel to this new node ~ state
     where
         forwardEdge = lookfor state confs
         Config (inState, transitions) = convert forwardEdge
