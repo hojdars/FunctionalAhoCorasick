@@ -34,19 +34,20 @@ erase state cfgs = filter (\ (Config a) -> (fst a)/=state) cfgs
 
 lookfor :: DAState -> [Config] -> Maybe Config -- prelude's lookup for Config type
 lookfor state [] = Nothing
-lookfor state (c:confs) = if state == cstate then Just c else lookfor state confs
+lookfor state (c:confs) | state == cstate = Just c 
+                        | otherwise       = lookfor state confs
                     where Config (cstate,nic) = c
 
 lookforBack :: DAState -> [BackEdge] -> Maybe DAState -- prelude's lookup for BackEdge type
 lookforBack state [] = Nothing
-lookforBack state (b:backs) = if state == firstState then Just nextState
-                            else lookforBack state backs
+lookforBack state (b:backs) | state == firstState = Just nextState
+                            | otherwise           = lookforBack state backs
     where BackEdge (firstState,nextState) = b
 
 lookForShort :: DAState -> [ShortEdge] -> Maybe DAState -- prelude's lookup for ShortEdge type
 lookForShort state [] = Nothing
-lookForShort state (b:backs) = if state == firstState then Just nextState
-                                else lookForShort state backs
+lookForShort state (b:backs) | state == firstState = Just nextState
+                             | otherwise           = lookForShort state backs
     where ShortEdge (firstState,nextState) = b
 
 -- generates one forward edge
